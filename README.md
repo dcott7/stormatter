@@ -24,24 +24,29 @@
     python -m venv .venv
     source .venv/bin/activate  # macOS/Linux
     # .venv\Scripts\activate   # Windows
-
+    ```
 
 2. **Install Stormatter in editable mode:**
 
     ```bash
     uv pip install -e .
+    ```
 
 3. **(Optional) Add CLI to your PATH:**
 
     ```bash
     echo 'export PATH="$PWD/.venv/bin:$PATH"' >> ~/.zshrc
     source ~/.zshrc
+    ```
 
 ## Usage
+
+
 ### Basic CLI
 
-    ```bash
-    stormatter path/to/file.dat
+```bash
+stormatter ./path/to/file.dat
+```
 
 This prints the formatted content to standard output.
 
@@ -54,9 +59,11 @@ This prints the formatted content to standard output.
 
 ### CLI Example
     
-    ```bash
-    stormatter -t 2 --spaces --section-blocks data/test.dat
+   ```bash
+   stormatter -t 2 --spaces --section-blocks data/test.dat
+   ```
 
 ### Python Module Usage
-    ```bash
-    python -m stormatter path/to/file.storm
+   ```bash
+   python -m stormatter path/to/file.dat
+   ```
