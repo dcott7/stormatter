@@ -1,0 +1,25 @@
+/*
+*******************
+test.dat
+*******************
+upadte history:
+    10/29/25 - Cotton 
+    - created file
+*/
+
+begin test_file
+
+begin       section_1
+ID: "some item"             {
+att1:   "some string"
+att2?   YES
+att3:       True
+att4:           ON
+begin       subsection
+// this is the subsection
+test 1              45
+end         subsection 
+}
+end section_1
+
+end test_file
