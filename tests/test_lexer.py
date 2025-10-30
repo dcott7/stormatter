@@ -46,7 +46,8 @@ class TestLexer(unittest.TestCase):
         tokens = self.tokenize("//this is a comment\nx")
         self.assertEqual(tokens[0].type, TokenType.LINECOMMENT)
         self.assertIn(
-            "this is a comment", tokens[0].to_byte_slice("//this is a comment\nx")
+            "this is a comment",
+            tokens[0].to_byte_slice("//this is a comment\nx"),
         )
         self.assertEqual(tokens[1].type, TokenType.WHITESPACE)
         self.assertEqual(tokens[2].type, TokenType.IDENT)

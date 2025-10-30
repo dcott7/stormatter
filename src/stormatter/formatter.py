@@ -8,6 +8,23 @@ from .token import Token, TokenType
 
 @dataclass
 class Formatter:
+    """
+    A code formatter that processes a stream of tokens and outputs formatted code.
+
+    Attributes:
+        lexer (Lexer): The lexer providing the token stream.
+        tab_display_size (int): Number of spaces per tab if spaces are used for indentation.
+        use_tabs (bool): Whether to use tabs for indentation.
+        indent_section_blocks (bool): Whether to indent/dedent on 'begin'/'end' keywords.
+        indent_level (int): Current indentation level.
+        output (str): The formatted output string.
+        tokens (List[Token]): List of tokens from the lexer.
+        current_token_index (int): Index of the current token being processed.
+        dedent_accounted_for (bool): Flag to track if dedent has been handled.
+    Methods:
+        format() -> str: Formats the code based on the token stream and returns the formatted string.
+    """
+
     lexer: Lexer
     tab_display_size: int = 4
     use_tabs: bool = True
@@ -54,12 +71,22 @@ class Formatter:
     def format(self) -> str:
         """Formats the code based on the token stream."""
         while self.current_token_index < len(self.tokens):
-            token = self.consume_token()
+            token = self.consume_token()  # get the next token
             token_text = self.lexer.source[token.start_index : token.end_index]
             # print(f'{repr(token_text)} {self.indent_level}')
 
             if token.type == TokenType.WHITESPACE:
-                # normalize to single spaces, or newlines with indentation
+                # if the whitespace contains a newline then we need to check what
+                # the next token is. If the next token is a token that causes a dedent,
+                # we need to reduce the indent level PRIOR to emitting this dedent causing
+                # token. If we did not do this, the dedent token would be indented cause the
+                # following newline to emit the indent at the current level. For example:
+                #    {
+                #       '\n' causes indent emit here
+                #    }  <- this closing brace would be indented incorrectly
+                # Handle multiple newlines by only emitting one and ignoring the rest. This
+                # causes some loss of fidelity but keeps things simple for now. Block comments
+                # containing multiple newlines will be preserved while formatting.
                 if "\n" in token_text:
                     self.emit("\n")
                     next_token = self.peek_token()
@@ -90,6 +117,14 @@ class Formatter:
                     self.emit(" ")  # default to just a space
 
             elif token.type == TokenType.IDENT:
+                # We have hit an identifier. Check if it's 'begin' or 'end' for special handling.
+                # If the identifier is 'begin' we will increase the indent level after emitting the
+                # 'begin', a ' ' and the next identifier token. If the identifier is 'end' we will
+                # decrease the indent level before emitting. This only applies if the 
+                # indent_section_blocks flag is set to True. If the next token is not an IDENT we 
+                # just emit the current IDENT normally. If the ident is 'end' and we have already 
+                # accounted for a dedent due to a preceding newline, we do not reduce the indent 
+                # level again we just reset the dedent_accounted_for flag and emit normally.
                 if not self.indent_section_blocks:
                     self.emit(token_text)
                     continue

@@ -54,11 +54,13 @@ def main():
         indent_section_blocks=args.section_blocks,
     )
 
+
 def patched_main() -> None:
     """Mimic Black’s entrypoint for PyInstaller compatibility."""
     if getattr(sys, "frozen", False):
         freeze_support()
     main()
+
 
 if __name__ == "__main__":
     patched_main()
