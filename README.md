@@ -16,31 +16,13 @@
 
 ## 📦 Installation
 
-### ✅ Recommended: Virtual Environment
+**install repository:**
 
-1. **Create and activate a virtual environment:**
-
-    ```bash
-    python -m venv .venv
-    source .venv/bin/activate  # macOS/Linux
-    # .venv\Scripts\activate   # Windows
-    ```
-
-2. **Install Stormatter in editable mode:**
-
-    ```bash
-    uv pip install -e .
-    ```
-
-3. **(Optional) Add CLI to your PATH:**
-
-    ```bash
-    echo 'export PATH="$PWD/.venv/bin:$PATH"' >> ~/.zshrc
-    source ~/.zshrc
-    ```
+```bash
+pip install git+https://github.com/dcott7/stormatter
+```
 
 ## Usage
-
 
 ### Basic CLI
 
@@ -48,22 +30,15 @@
 stormatter ./path/to/file.dat
 ```
 
-This prints the formatted content to standard output.
+#### This prints the formatted content to standard output.
 
 ### CLI Options
-- -t, --tabsize <number>: Number of spaces per indentation level (default: 4, used only with --spaces)
-
-- --spaces: Use spaces instead of tabs
-
-- --section-blocks: Treat begin IDENT / end IDENT as block delimiters
+- #### -t, --tabsize <number>: Number of spaces per indentation level (default: 4, used only with --spaces)
+- #### --spaces: Use spaces instead of tabs
+- #### --section-blocks: Treat begin IDENT / end IDENT as block delimiters
+- #### --help: print out the help page
 
 ### CLI Example
-    
    ```bash
    stormatter -t 2 --spaces --section-blocks data/test.dat
-   ```
-
-### Python Module Usage
-   ```bash
-   python -m stormatter path/to/file.dat
    ```
