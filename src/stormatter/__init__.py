@@ -1,17 +1,17 @@
-import sys
-from multiprocessing import freeze_support
-import argparse
+"""Stormatter - A code formatter and study manager for STORM files."""
 
 from .formatting import Formatter
 from .parsing import Lexer
 
 
+# Legacy format_file function for backwards compatibility
 def format_file(
     fp: str,
     tab_size: int = 4,
     use_tabs: bool = True,
     indent_section_blocks: bool = False,
 ) -> None:
+    """Format a file and print to stdout. (Legacy function, use CLI instead)"""
     with open(fp, "r", encoding="utf-8") as f:
         src_code = f.read()
 
@@ -25,41 +25,19 @@ def format_file(
     print(formatter.format())
 
 
+# Legacy main function - now just imports from cli.format
 def main():
-    parser = argparse.ArgumentParser(description="Format a STORM file.")
-    parser.add_argument("input", help="Path to the input source file")
-    parser.add_argument(
-        "-t",
-        "--tabsize",
-        type=int,
-        default=4,
-        help="Number of spaces per indentation level (used only if --spaces is set)",
-    )
-    parser.add_argument(
-        "--spaces",
-        action="store_true",
-        help="Use spaces instead of tabs for indentation",
-    )
-    parser.add_argument(
-        "--section-blocks",
-        action="store_true",
-        help="Treat 'begin IDENT' / 'end IDENT' as block delimiters",
-    )
+    """Legacy main function - redirects to cli.format.main()"""
+    from .cli.format import main as format_main
 
-    args = parser.parse_args()
-    format_file(
-        args.input,
-        tab_size=args.tabsize,
-        use_tabs=not args.spaces,
-        indent_section_blocks=args.section_blocks,
-    )
+    format_main()
 
 
 def patched_main() -> None:
-    """Mimic Black’s entrypoint for PyInstaller compatibility."""
-    if getattr(sys, "frozen", False):
-        freeze_support()
-    main()
+    """Legacy patched_main - redirects to cli.format.patched_main()"""
+    from .cli.format import patched_main as format_patched_main
+
+    format_patched_main()
 
 
 if __name__ == "__main__":

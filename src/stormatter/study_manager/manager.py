@@ -222,7 +222,7 @@ class PathsDatManager:
 
 
 class StudyManager:
-    """"""
+    """Study manager for handling STORM study data files."""
 
     def __init__(self) -> None:
         pass
