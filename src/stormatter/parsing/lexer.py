@@ -17,7 +17,7 @@ class Lexer:
     all_whitespace_on_this_line: bool = True
 
     bracket_level: int = 0
-    bracket_level_stack: list[int] = field(default_factory=list)
+    bracket_level_stack: list[int] = field(default_factory=lambda: [])
     prev_token: Token | None = None
 
     def is_in_bounds(self) -> bool:

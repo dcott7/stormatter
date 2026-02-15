@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "pytest>=9.0.2",
+]
 
 [build-system]
 requires = ["setuptools", "wheel"]
@@ -12,3 +14,6 @@ build-backend = "setuptools.build_meta"
 
 [project.scripts]
 stormatter = "stormatter:patched_main"
+
+[tool.setuptools.package-data]
+stormatter = ["py.typed"]

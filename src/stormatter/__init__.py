@@ -2,8 +2,8 @@ import sys
 from multiprocessing import freeze_support
 import argparse
 
-from .formatter import Formatter
-from .lexer import Lexer
+from .formatting import Formatter
+from .parsing import Lexer
 
 
 def format_file(

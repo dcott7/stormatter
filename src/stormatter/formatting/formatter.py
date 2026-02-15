@@ -1,9 +1,14 @@
 from dataclasses import dataclass, field
 from typing import List
 
+from ..parsing.lexer import Lexer
+from ..parsing.token import Token, TokenType
 
-from .lexer import Lexer
-from .token import Token, TokenType
+
+@dataclass
+class FormattedTokenOutput:
+    token_type: TokenType
+    text: str
 
 
 @dataclass
@@ -17,7 +22,7 @@ class Formatter:
         use_tabs (bool): Whether to use tabs for indentation.
         indent_section_blocks (bool): Whether to indent/dedent on 'begin'/'end' keywords.
         indent_level (int): Current indentation level.
-        output (str): The formatted output string.
+        output_strs: List[FormattedTokenOutput]: The formatted output as a list of FormattedTokenOutput instances.
         tokens (List[Token]): List of tokens from the lexer.
         current_token_index (int): Index of the current token being processed.
         dedent_accounted_for (bool): Flag to track if dedent has been handled.
@@ -30,8 +35,8 @@ class Formatter:
     use_tabs: bool = True
     indent_section_blocks: bool = False  # flag to indent/dedent on begin/end
     indent_level: int = 0
-    output: str = ""
-    tokens: List[Token] = field(default_factory=list)
+    output_strs: List[FormattedTokenOutput] = field(default_factory=lambda: [])
+    tokens: List[Token] = field(default_factory=lambda: [])
     current_token_index: int = 0
     dedent_accounted_for = False
 
@@ -57,19 +62,21 @@ class Formatter:
             # handle reaching the end of tokens gracefully by returning EOF
             return Token(TokenType.EOF, 0, 0, 0, 0, 0, 0)
 
-    def emit(self, text: str) -> None:
+    def emit(self, token_type: TokenType, text: str) -> None:
         """Appends text to the output."""
-        self.output += text
+        self.output_strs.append(FormattedTokenOutput(token_type, text))
 
     def emit_indent(self) -> None:
         """Emits indentation based on the current indent level."""
         if self.use_tabs:
-            self.emit("\t" * self.indent_level)
+            self.emit(TokenType.WHITESPACE, "\t" * self.indent_level)
         else:
-            self.emit(" " * self.indent_level * self.tab_display_size)
+            self.emit(
+                TokenType.WHITESPACE, " " * self.indent_level * self.tab_display_size
+            )
 
-    def format(self) -> str:
-        """Formats the code based on the token stream."""
+    def format_tokens(self) -> List[FormattedTokenOutput]:
+        """Formats the tokens and returns a list of formatted tokens."""
         while self.current_token_index < len(self.tokens):
             token = self.consume_token()  # get the next token
             token_text = self.lexer.source[token.start_index : token.end_index]
@@ -88,7 +95,7 @@ class Formatter:
                 # causes some loss of fidelity but keeps things simple for now. Block comments
                 # containing multiple newlines will be preserved while formatting.
                 if "\n" in token_text:
-                    self.emit("\n")
+                    self.emit(TokenType.WHITESPACE, "\n")
                     next_token = self.peek_token()
                     if next_token and (
                         (
@@ -114,19 +121,19 @@ class Formatter:
                         )
                     self.emit_indent()
                 else:
-                    self.emit(" ")  # default to just a space
+                    self.emit(TokenType.WHITESPACE, " ")  # default to just a space
 
             elif token.type == TokenType.IDENT:
                 # We have hit an identifier. Check if it's 'begin' or 'end' for special handling.
                 # If the identifier is 'begin' we will increase the indent level after emitting the
                 # 'begin', a ' ' and the next identifier token. If the identifier is 'end' we will
-                # decrease the indent level before emitting. This only applies if the 
-                # indent_section_blocks flag is set to True. If the next token is not an IDENT we 
-                # just emit the current IDENT normally. If the ident is 'end' and we have already 
-                # accounted for a dedent due to a preceding newline, we do not reduce the indent 
+                # decrease the indent level before emitting. This only applies if the
+                # indent_section_blocks flag is set to True. If the next token is not an IDENT we
+                # just emit the current IDENT normally. If the ident is 'end' and we have already
+                # accounted for a dedent due to a preceding newline, we do not reduce the indent
                 # level again we just reset the dedent_accounted_for flag and emit normally.
                 if not self.indent_section_blocks:
-                    self.emit(token_text)
+                    self.emit(TokenType.IDENT, token_text)
                     continue
 
                 offset = 1
@@ -142,7 +149,7 @@ class Formatter:
                     ]
 
                     if token_text.lower() == "begin":
-                        self.emit(token_text + " " + next_text)
+                        self.emit(TokenType.IDENT, token_text + " " + next_text)
                         # Consume all tokens up to and including the second IDENT
                         for _ in range(offset):
                             self.consume_token()
@@ -154,45 +161,54 @@ class Formatter:
                         if not self.dedent_accounted_for:
                             self.indent_level = max(0, self.indent_level - 1)
                         self.dedent_accounted_for = False
-                        self.emit(token_text + " " + next_text)
+                        self.emit(TokenType.IDENT, token_text + " " + next_text)
                         for _ in range(offset):
                             self.consume_token()
                         self.consume_token()  # consume the second IDENT itself
                         continue
 
-                self.emit(token_text)
+                self.emit(TokenType.IDENT, token_text)
 
             elif token.type == TokenType.STRING:
-                self.emit(token_text)
+                self.emit(TokenType.STRING, token_text)
             elif token.type == TokenType.ICONST:
-                self.emit(token_text)
+                self.emit(TokenType.ICONST, token_text)
             elif token.type == TokenType.FCONST:
-                self.emit(token_text)
+                self.emit(TokenType.FCONST, token_text)
             elif token.type == TokenType.PUNCTUATOR:
                 # basic indentation handling based on braces.
                 if token_text in ["{", "[", "("]:
-                    self.emit(token_text)  # emit this token before updating indentation
+                    self.emit(
+                        TokenType.PUNCTUATOR, token_text
+                    )  # emit this token before updating indentation
                     self.indent_level += 1
                 elif token_text in ["}", "]", ")"]:
                     if not self.dedent_accounted_for:
                         self.indent_level = max(0, self.indent_level - 1)
                     self.dedent_accounted_for = False
-                    self.emit(token_text)  # emit this token after updating indentation
+                    self.emit(
+                        TokenType.PUNCTUATOR, token_text
+                    )  # emit this token after updating indentation
                 else:
                     self.emit(
-                        token_text
+                        TokenType.PUNCTUATOR, token_text
                     )  # punctuator does not cause a change in indentation level
 
             elif token.type == TokenType.LINECOMMENT:
-                self.emit(token_text)
+                self.emit(TokenType.LINECOMMENT, token_text)
 
             elif token.type == TokenType.BLOCKCOMMENT:
-                self.emit(token_text)
+                self.emit(TokenType.BLOCKCOMMENT, token_text)
 
             elif token.type == TokenType.EOF:
                 break  # stop formatting at EOF
 
             else:
-                self.emit(token_text)  # fallback
+                self.emit(token.type, token_text)  # fallback
 
-        return self.output
+        return self.output_strs
+
+    def format(self) -> str:
+        """Formats the code based on the token stream."""
+        formatted_tokens = self.format_tokens()
+        return "".join(token_output.text for token_output in formatted_tokens)
