@@ -271,9 +271,8 @@ class Formatter:
                         "Whitespace contains newline. Next token is %s",
                         self.describe_token(next_token),
                     )
-                    if (
-                        self.config.brace_style == "kr"
-                        and self.is_opening_brace(next_token)
+                    if self.config.brace_style == "kr" and self.is_opening_brace(
+                        next_token
                     ):
                         logger.debug(
                             "Applying K&R brace style before token %s",
@@ -288,9 +287,8 @@ class Formatter:
                         "Whitespace contains no newline. Next non-whitespace token is %s",
                         self.describe_token(next_token),
                     )
-                    if (
-                        self.config.brace_style == "allman"
-                        and self.is_opening_brace(next_token)
+                    if self.config.brace_style == "allman" and self.is_opening_brace(
+                        next_token
                     ):
                         logger.debug(
                             "Applying Allman brace style before token %s",
