@@ -1,0 +1,11 @@
+# options: {"use_tabs": true}
+
+(value) main() {
+  return 10;
+}
+
+# output
+
+(value) main() {
+	return 10;
+}

@@ -1,0 +1,10 @@
+
+/* This is a
+block comment */
+value x = 10;
+
+# output
+
+/* This is a
+block comment */
+value x = 10;

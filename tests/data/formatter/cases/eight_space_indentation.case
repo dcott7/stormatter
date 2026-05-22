@@ -1,0 +1,11 @@
+# options: {  "tab_display_size": 8,  "use_tabs": false}
+
+(value) main() {
+  return = 10;
+}
+
+# output
+
+(value) main() {
+        return = 10;
+}

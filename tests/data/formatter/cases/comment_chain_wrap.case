@@ -1,0 +1,8 @@
+# options: {"max_line_length": 18}
+
+value x = 1; // comment here with extra words
+
+# output
+
+value x = 1;
+// comment here with extra words

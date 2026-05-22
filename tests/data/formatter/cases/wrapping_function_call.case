@@ -1,0 +1,9 @@
+# options: {"max_line_length": 24}
+
+result = compute(alpha, beta, gamma, delta, epsilon, zeta);
+
+# output
+
+result = compute(alpha,
+	beta, gamma, delta,
+	epsilon, zeta);

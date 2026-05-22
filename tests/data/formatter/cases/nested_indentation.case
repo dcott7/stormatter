@@ -1,0 +1,14 @@
+
+if (x > 5) {
+if (y < 10) {
+value z = x + y;
+}
+}
+
+# output
+
+if (x > 5) {
+	if (y < 10) {
+		value z = x + y;
+	}
+}

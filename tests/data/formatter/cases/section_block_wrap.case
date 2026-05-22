@@ -1,0 +1,13 @@
+# options: {"indent_section_blocks": true, "use_tabs": true, "max_line_length": 18}
+
+begin section
+value alpha beta gamma delta
+end section
+
+# output
+
+begin section
+	value alpha
+	beta gamma
+	delta
+end section

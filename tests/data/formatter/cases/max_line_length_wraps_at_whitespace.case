@@ -1,0 +1,8 @@
+# options: {  "max_line_length": 8}
+
+alpha beta
+
+# output
+
+alpha
+beta

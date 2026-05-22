@@ -1,0 +1,13 @@
+
+     (value) myFunction    (  value v, str s  ) {  
+             
+     return x;
+       
+       
+                  }
+
+# output
+
+(value) myFunction ( value v, str s ) {
+	return x;
+}
