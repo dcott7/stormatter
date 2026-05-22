@@ -12,15 +12,29 @@ class FormattedTokenOutput:
 
 
 @dataclass
+class FormatterConfig:
+    """
+    Configuration options for the Formatter.
+
+    Attributes:
+        tab_display_size (int): Number of spaces per tab if spaces are used for indentation.
+        use_tabs (bool): Whether to use tabs for indentation.
+        indent_section_blocks (bool): Whether to indent/dedent on 'begin'/'end'
+    """
+
+    tab_display_size: int = 4
+    use_tabs: bool = False
+    indent_section_blocks: bool = False
+
+
+@dataclass
 class Formatter:
     """
     A code formatter that processes a stream of tokens and outputs formatted code.
 
     Attributes:
         lexer (Lexer): The lexer providing the token stream.
-        tab_display_size (int): Number of spaces per tab if spaces are used for indentation.
-        use_tabs (bool): Whether to use tabs for indentation.
-        indent_section_blocks (bool): Whether to indent/dedent on 'begin'/'end' keywords.
+        config (FormatterConfig): Configuration options for the formatter.
         indent_level (int): Current indentation level.
         output_strs: List[FormattedTokenOutput]: The formatted output as a list of FormattedTokenOutput instances.
         tokens (List[Token]): List of tokens from the lexer.
@@ -31,9 +45,7 @@ class Formatter:
     """
 
     lexer: Lexer
-    tab_display_size: int = 4
-    use_tabs: bool = True
-    indent_section_blocks: bool = False  # flag to indent/dedent on begin/end
+    config: FormatterConfig = field(default_factory=FormatterConfig)
     indent_level: int = 0
     output_strs: List[FormattedTokenOutput] = field(default_factory=lambda: [])
     tokens: List[Token] = field(default_factory=lambda: [])
@@ -68,11 +80,12 @@ class Formatter:
 
     def emit_indent(self) -> None:
         """Emits indentation based on the current indent level."""
-        if self.use_tabs:
+        if self.config.use_tabs:
             self.emit(TokenType.WHITESPACE, "\t" * self.indent_level)
         else:
             self.emit(
-                TokenType.WHITESPACE, " " * self.indent_level * self.tab_display_size
+                TokenType.WHITESPACE,
+                " " * self.indent_level * self.config.tab_display_size,
             )
 
     def format_tokens(self) -> List[FormattedTokenOutput]:
@@ -106,7 +119,7 @@ class Formatter:
                             in ["}", "]", ")"]
                         )
                         or (
-                            self.indent_section_blocks
+                            self.config.indent_section_blocks
                             and next_token.type == TokenType.IDENT
                             and self.lexer.source[
                                 next_token.start_index : next_token.end_index
@@ -132,7 +145,7 @@ class Formatter:
                 # just emit the current IDENT normally. If the ident is 'end' and we have already
                 # accounted for a dedent due to a preceding newline, we do not reduce the indent
                 # level again we just reset the dedent_accounted_for flag and emit normally.
-                if not self.indent_section_blocks:
+                if not self.config.indent_section_blocks:
                     self.emit(TokenType.IDENT, token_text)
                     continue
 

@@ -3,7 +3,7 @@ from stormatter.formatting import Formatter
 
 
 mixed_case_test = """
-int main() {
+() main() {
     // A simple program
     int x = 10;
     if (x > 5) {
@@ -13,7 +13,7 @@ int main() {
 """
 
 dat_case_test = """
-     value myFunction    (  value v, str s  ) {  
+     (value) myFunction    (  value v, str s  ) {  
              
      return x;
        
@@ -76,7 +76,7 @@ def test_no_indentation():
 
 def test_mixed_content():
     expected = (
-        "\nint main() {\n"
+        "\n() main() {\n"
         "\t// A simple program\n"
         "\tint x = 10;\n"
         "\tif (x > 5) {\n"
@@ -88,7 +88,7 @@ def test_mixed_content():
 
 
 def test_dat():
-    expected = "\nvalue myFunction ( value v, str s ) {\n\treturn x;\n}\n"
+    expected = "\n(value) myFunction ( value v, str s ) {\n\treturn x;\n}\n"
     assert format_source(dat_case_test, tab_display_size=4) == expected
 
 

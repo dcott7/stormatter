@@ -72,4 +72,4 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pytest", specifier = ">=9.0.2" }]
+requires-dist = [{ name = "pytest", specifier = ">=7.0.0" }]
