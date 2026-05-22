@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterable, Tuple
 
-
 # (mtime, size, sha256)
 FileInfo = Tuple[float, int, str]
 

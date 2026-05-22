@@ -5,7 +5,7 @@ from multiprocessing import freeze_support
 import argparse
 from pathlib import Path
 
-from ..formatting import Formatter
+from ..formatting import Formatter, FormatterConfig
 from ..parsing import Lexer
 
 
@@ -14,6 +14,7 @@ def format_file(
     tab_size: int = 4,
     use_tabs: bool = True,
     indent_section_blocks: bool = False,
+    max_line_length: int | None = None,
     in_place: bool = False,
 ) -> None:
     """Format a file and either print to stdout or write back in place."""
@@ -22,9 +23,12 @@ def format_file(
 
     formatter = Formatter(
         lexer=Lexer(src_code),
-        tab_display_size=tab_size,
-        use_tabs=use_tabs,
-        indent_section_blocks=indent_section_blocks,
+        config=FormatterConfig(
+            tab_display_size=tab_size,
+            use_tabs=use_tabs,
+            indent_section_blocks=indent_section_blocks,
+            max_line_length=max_line_length,
+        ),
     )
 
     formatted = formatter.format()
@@ -58,6 +62,12 @@ def main() -> None:
         help="Treat 'begin IDENT' / 'end IDENT' as block delimiters",
     )
     parser.add_argument(
+        "--max-line-length",
+        type=int,
+        default=None,
+        help="Wrap lines before they exceed this width when possible",
+    )
+    parser.add_argument(
         "-i",
         "--in-place",
         action="store_true",
@@ -70,6 +80,7 @@ def main() -> None:
         tab_size=args.tabsize,
         use_tabs=not args.spaces,
         indent_section_blocks=args.section_blocks,
+        max_line_length=args.max_line_length,
         in_place=args.in_place,
     )
 
