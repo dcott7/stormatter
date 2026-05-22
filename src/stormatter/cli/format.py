@@ -15,6 +15,7 @@ def format_file(
     use_tabs: bool = True,
     indent_section_blocks: bool = False,
     max_line_length: int | None = None,
+    brace_style: str = "preserve",
     in_place: bool = False,
 ) -> None:
     """Format a file and either print to stdout or write back in place."""
@@ -28,6 +29,7 @@ def format_file(
             use_tabs=use_tabs,
             indent_section_blocks=indent_section_blocks,
             max_line_length=max_line_length,
+            brace_style=brace_style,
         ),
     )
 
@@ -68,6 +70,12 @@ def main() -> None:
         help="Wrap lines before they exceed this width when possible",
     )
     parser.add_argument(
+        "--brace-style",
+        choices=["preserve", "kr", "allman"],
+        default="preserve",
+        help="Brace placement style to enforce",
+    )
+    parser.add_argument(
         "-i",
         "--in-place",
         action="store_true",
@@ -81,6 +89,7 @@ def main() -> None:
         use_tabs=not args.spaces,
         indent_section_blocks=args.section_blocks,
         max_line_length=args.max_line_length,
+        brace_style=args.brace_style,
         in_place=args.in_place,
     )
 

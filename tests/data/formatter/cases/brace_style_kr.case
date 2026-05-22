@@ -1,0 +1,12 @@
+# options: {"brace_style": "kr"}
+
+(value) main()
+{
+  return 10;
+}
+
+# output
+
+(value) main() {
+	return 10;
+}

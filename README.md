@@ -37,6 +37,7 @@ stormatter ./path/to/file.dat
 - **--spaces**: Use spaces instead of tabs
 - **--section-blocks**: Treat begin IDENT / end IDENT as block delimiters
 - **--max-line-length** <number>: Wrap lines before they exceed this width when possible
+- **--brace-style** <preserve|kr|allman>: Configure brace placement style
 - **--help**: print out the help page
 
 ### CLI Example
@@ -50,6 +51,7 @@ stormatter ./path/to/file.dat
 2. Reduce/normalize newline characters - Blank lines are removed to condense the file.
 3. Format leading whitespace - Ensures consistent indentation at the start of lines.
 4. Optional line wrapping - When `--max-line-length` is set, the formatter breaks at available whitespace boundaries when a line would otherwise exceed the limit.
+5. Optional brace style - Supports preserved input style, K&R (`kr`), or Allman (`allman`) brace placement.
 
 ## Planned Future Updates
 ### Key-value alignment:

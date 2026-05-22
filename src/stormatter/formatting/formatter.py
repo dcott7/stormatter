@@ -24,12 +24,14 @@ class FormatterConfig:
         use_tabs (bool): Whether to use tabs for indentation.
         indent_section_blocks (bool): Whether to indent/dedent on 'begin'/'end'
         max_line_length (int | None): Optional maximum display width for a line.
+        brace_style (str): Brace placement style: 'preserve', 'kr', or 'allman'.
     """
 
     tab_display_size: int = 4
     use_tabs: bool = True
     indent_section_blocks: bool = False
     max_line_length: int | None = None
+    brace_style: str = "preserve"
 
 
 @dataclass
@@ -65,13 +67,19 @@ class Formatter:
         self.current_line_length = 0
         logger.debug(
             "Formatter initialized: tokens=%d, tab_display_size=%d, use_tabs=%s, "
-            "indent_section_blocks=%s, max_line_length=%s",
+            "indent_section_blocks=%s, max_line_length=%s, brace_style=%s",
             len(self.tokens),
             self.config.tab_display_size,
             self.config.use_tabs,
             self.config.indent_section_blocks,
             self.config.max_line_length,
+            self.config.brace_style,
         )
+
+        if self.config.brace_style not in ["preserve", "kr", "allman"]:
+            raise ValueError(
+                "brace_style must be one of: 'preserve', 'kr', or 'allman'"
+            )
 
     def describe_token(self, token: Token | None) -> str:
         """Builds a concise debug description of a token."""
@@ -131,6 +139,14 @@ class Formatter:
             self.config.indent_section_blocks
             and token.type == TokenType.IDENT
             and token_text.lower() == "end"
+        )
+
+    def is_opening_brace(self, token: Token | None) -> bool:
+        """Checks whether a token is an opening curly brace."""
+        return (
+            token is not None
+            and token.type == TokenType.PUNCTUATOR
+            and self.token_text(token) == "{"
         )
 
     def should_wrap_before(self, token: Token | None) -> bool:
@@ -255,14 +271,33 @@ class Formatter:
                         "Whitespace contains newline. Next token is %s",
                         self.describe_token(next_token),
                     )
-                    self.emit_line_break(next_token)
+                    if (
+                        self.config.brace_style == "kr"
+                        and self.is_opening_brace(next_token)
+                    ):
+                        logger.debug(
+                            "Applying K&R brace style before token %s",
+                            self.describe_token(next_token),
+                        )
+                        self.emit(TokenType.WHITESPACE, " ")
+                    else:
+                        self.emit_line_break(next_token)
                 else:
                     next_token = self.next_non_whitespace_token()
                     logger.debug(
                         "Whitespace contains no newline. Next non-whitespace token is %s",
                         self.describe_token(next_token),
                     )
-                    if self.should_wrap_before(next_token):
+                    if (
+                        self.config.brace_style == "allman"
+                        and self.is_opening_brace(next_token)
+                    ):
+                        logger.debug(
+                            "Applying Allman brace style before token %s",
+                            self.describe_token(next_token),
+                        )
+                        self.emit_line_break(next_token)
+                    elif self.should_wrap_before(next_token):
                         logger.debug(
                             "Wrapping line before token %s",
                             self.describe_token(next_token),
