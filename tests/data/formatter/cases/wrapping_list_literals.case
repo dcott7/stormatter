@@ -1,4 +1,4 @@
-# options: {"max_line_length": 20}
+# options: {"max_line_length": 20, "use_tabs": true}
 
 value array[6] = [0, 1, 2, 3, 4, 5, 6];
 

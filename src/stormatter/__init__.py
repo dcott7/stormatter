@@ -1,4 +1,4 @@
-"""Stormatter - A code formatter and study manager for STORM files."""
+"""Stormatter - A code formatter for STORM files."""
 
 from .formatting import Formatter
 from .parsing import Lexer
@@ -6,13 +6,13 @@ from .parsing import Lexer
 
 # Legacy format_file function for backwards compatibility
 def format_file(
-    fp: str,
+    file_path: str,
     tab_size: int = 4,
     use_tabs: bool = True,
-    indent_section_blocks: bool = False,
+    indent_section_blocks: bool = True,
 ) -> None:
     """Format a file and print to stdout. (Legacy function, use CLI instead)"""
-    with open(fp, "r", encoding="utf-8") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         src_code = f.read()
 
     formatter = Formatter(

@@ -1,5 +1,6 @@
+# options: {"use_tabs": true, "empty_lines": "collapse"}
 
-     (value) myFunction    (  value v, str s  ) {  
+     (value) myFunction    (  value v, str s  ) {
              
      return x;
        

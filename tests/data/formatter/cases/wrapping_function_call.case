@@ -1,4 +1,4 @@
-# options: {"max_line_length": 24}
+# options: {"max_line_length": 24, "use_tabs": true}
 
 result = compute(alpha, beta, gamma, delta, epsilon, zeta);
 

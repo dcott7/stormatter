@@ -1,4 +1,4 @@
-# options: {"brace_style": "allman"}
+# options: {"brace_style": "allman", "use_tabs": true}
 
 (value) main() {
   return 10;

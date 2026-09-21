@@ -1,0 +1,11 @@
+# options: {"use_tabs": true, "indent_section_blocks": true}
+
+begin outer begin inner value x = 10; end inner end outer
+
+# output
+
+begin outer
+	begin inner
+		value x = 10;
+	end inner
+end outer

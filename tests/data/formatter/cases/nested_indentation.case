@@ -1,3 +1,4 @@
+# options: {"use_tabs": true}
 
 if (x > 5) {
 if (y < 10) {

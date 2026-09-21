@@ -1,0 +1,19 @@
+# options: {"empty_lines": "single"}
+
+value a = 1;
+
+
+
+value b = 2;
+value c = 3;
+
+value d = 4;
+
+# output
+
+value a = 1;
+
+value b = 2;
+value c = 3;
+
+value d = 4;

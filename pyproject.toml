@@ -18,3 +18,8 @@ stormatter-paths = "stormatter.cli.paths:main"
 
 [tool.setuptools.package-data]
 stormatter = ["py.typed"]
+
+[dependency-groups]
+dev = [
+    "black>=26.5.1",
+]

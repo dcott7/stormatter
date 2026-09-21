@@ -1,0 +1,13 @@
+# options: {"empty_lines": "single", "use_tabs": true}
+
+(value) main() {
+value x = 10;
+
+}
+
+# output
+
+(value) main() {
+	value x = 10;
+
+}

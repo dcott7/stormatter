@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Stormatter format cache
+.stormatter_cache/

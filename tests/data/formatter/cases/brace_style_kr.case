@@ -1,4 +1,4 @@
-# options: {"brace_style": "kr"}
+# options: {"brace_style": "kr", "use_tabs": true}
 
 (value) main()
 {

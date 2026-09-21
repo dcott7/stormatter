@@ -1,4 +1,6 @@
 from dataclasses import dataclass, field
+from enum import auto, StrEnum
+import hashlib
 import logging
 from typing import List
 
@@ -6,6 +8,26 @@ from ..parsing.lexer import Lexer
 from ..parsing.token import Token, TokenType
 
 logger = logging.getLogger(__name__)
+
+
+class BraceStyle(StrEnum):
+    PRESERVE = auto()  # preserve location of braces
+    KR = auto()  # K&R style: opening brace stays on the previous line
+    ALLMAN = auto()  # Allman style: opening brace goes on its own line
+
+
+class EmptyLines(StrEnum):
+    COLLAPSE = auto()  # never emit a blank line
+    SINGLE = auto()  # collapse any run of blank lines down to at most one
+    PRESERVE = auto()  # keep the exact number of blank lines from the source
+
+
+DEFAULT_INDENT_SECTION = True
+DEFAULT_SPACES_PER_TAB = 4
+DEFAULT_USE_TABS = False
+DEFAULT_MAX_LINE_LENGTH = 100
+DEFAULT_BRACE_STYLE = BraceStyle.PRESERVE
+DEFAULT_EMPTY_LINES = EmptyLines.SINGLE
 
 
 @dataclass
@@ -24,14 +46,42 @@ class FormatterConfig:
         use_tabs (bool): Whether to use tabs for indentation.
         indent_section_blocks (bool): Whether to indent/dedent on 'begin'/'end'
         max_line_length (int | None): Optional maximum display width for a line.
-        brace_style (str): Brace placement style: 'preserve', 'kr', or 'allman'.
+        brace_style (BraceStyle): Brace placement style: preserve, kr, or allman.
+            A plain string ('preserve'/'kr'/'allman') is also accepted and
+            coerced to BraceStyle.
+        empty_lines (EmptyLines): How to handle blank lines from the source:
+            collapse (never emit one), single (cap runs at one), or preserve
+            (keep the exact count). A plain string is also accepted and
+            coerced to EmptyLines.
     """
 
-    tab_display_size: int = 4
-    use_tabs: bool = True
-    indent_section_blocks: bool = False
-    max_line_length: int | None = None
-    brace_style: str = "preserve"
+    tab_display_size: int = DEFAULT_SPACES_PER_TAB
+    use_tabs: bool = DEFAULT_USE_TABS
+    indent_section_blocks: bool = DEFAULT_INDENT_SECTION
+    max_line_length: int | None = DEFAULT_MAX_LINE_LENGTH
+    brace_style: BraceStyle = DEFAULT_BRACE_STYLE
+    empty_lines: EmptyLines = DEFAULT_EMPTY_LINES
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.brace_style, BraceStyle):
+            self.brace_style = BraceStyle(self.brace_style)
+        if not isinstance(self.empty_lines, EmptyLines):
+            self.empty_lines = EmptyLines(self.empty_lines)
+
+    def signature(self) -> str:
+        """Short stable hash of the config, used to key on-disk format caches so
+        that a settings change invalidates any cache built under old settings."""
+        payload = repr(
+            (
+                self.tab_display_size,
+                self.use_tabs,
+                self.indent_section_blocks,
+                self.max_line_length,
+                str(self.brace_style),
+                str(self.empty_lines),
+            )
+        ).encode()
+        return hashlib.sha256(payload).hexdigest()[:16]
 
 
 @dataclass
@@ -47,6 +97,8 @@ class Formatter:
         tokens (List[Token]): List of tokens from the lexer.
         current_token_index (int): Index of the current token being processed.
         dedent_accounted_for (bool): Flag to track if dedent has been handled.
+        just_started_section (bool): Flag tracking a 'begin IDENT' that has not yet
+            been followed by a forced line break.
     Methods:
         format() -> str: Formats the code based on the token stream and returns the formatted string.
     """
@@ -59,6 +111,7 @@ class Formatter:
     current_token_index: int = 0
     current_line_length: int = 0
     dedent_accounted_for = False
+    just_started_section = False
 
     def __post_init__(self):
         # pre-tokenize the entire input
@@ -67,19 +120,16 @@ class Formatter:
         self.current_line_length = 0
         logger.debug(
             "Formatter initialized: tokens=%d, tab_display_size=%d, use_tabs=%s, "
-            "indent_section_blocks=%s, max_line_length=%s, brace_style=%s",
+            "indent_section_blocks=%s, max_line_length=%s, brace_style=%s, "
+            "empty_lines=%s",
             len(self.tokens),
             self.config.tab_display_size,
             self.config.use_tabs,
             self.config.indent_section_blocks,
             self.config.max_line_length,
             self.config.brace_style,
+            self.config.empty_lines,
         )
-
-        if self.config.brace_style not in ["preserve", "kr", "allman"]:
-            raise ValueError(
-                "brace_style must be one of: 'preserve', 'kr', or 'allman'"
-            )
 
     def describe_token(self, token: Token | None) -> str:
         """Builds a concise debug description of a token."""
@@ -141,6 +191,32 @@ class Formatter:
             and token_text.lower() == "end"
         )
 
+    def peek_section_marker(self) -> bool:
+        """Checks whether the upcoming tokens form a 'begin IDENT' / 'end IDENT'
+        section marker that should be forced onto its own line, mirroring the
+        lookahead used when a 'begin'/'end' IDENT is actually processed."""
+        if not self.config.indent_section_blocks or self.current_line_length == 0:
+            return False
+
+        offset = 0
+        first = self.peek_token(offset)
+        while first and first.type == TokenType.WHITESPACE:
+            offset += 1
+            first = self.peek_token(offset)
+
+        if first is None or first.type != TokenType.IDENT:
+            return False
+        if self.token_text(first).lower() not in ("begin", "end"):
+            return False
+
+        offset += 1
+        second = self.peek_token(offset)
+        while second and second.type == TokenType.WHITESPACE:
+            offset += 1
+            second = self.peek_token(offset)
+
+        return second is not None and second.type == TokenType.IDENT
+
     def is_opening_brace(self, token: Token | None) -> bool:
         """Checks whether a token is an opening curly brace."""
         return (
@@ -178,12 +254,26 @@ class Formatter:
         )
         return should_wrap
 
-    def emit_line_break(self, next_token: Token | None) -> None:
-        """Emits a normalized newline and the indentation for the next line."""
+    def count_blank_lines(self, token_text: str) -> int:
+        """Returns how many blank lines a whitespace token's newlines should
+        produce, per the configured EmptyLines policy."""
+        blank_lines = max(0, token_text.count("\n") - 1)
+        if self.config.empty_lines == EmptyLines.COLLAPSE:
+            return 0
+        if self.config.empty_lines == EmptyLines.SINGLE:
+            return min(blank_lines, 1)
+        return blank_lines  # EmptyLines.PRESERVE
+
+    def emit_line_break(self, next_token: Token | None, blank_lines: int = 0) -> None:
+        """Emits any preserved blank lines, then a normalized newline and the
+        indentation for the next line."""
         logger.debug(
-            "Emitting normalized line break before token %s",
+            "Emitting normalized line break before token %s (blank_lines=%d)",
             self.describe_token(next_token),
+            blank_lines,
         )
+        for _ in range(blank_lines):
+            self.emit(TokenType.WHITESPACE, "\n")
         self.emit(TokenType.WHITESPACE, "\n")
         if next_token and self.token_causes_dedent(next_token):
             previous_indent = self.indent_level
@@ -252,6 +342,12 @@ class Formatter:
             )
 
             if token.type == TokenType.WHITESPACE:
+                # A 'begin IDENT' pair forces the following token onto its own
+                # line, whatever that token is. Read and clear the pending flag
+                # once up front so every path below resolves it exactly once.
+                pending_section_start = self.just_started_section
+                self.just_started_section = False
+
                 # if the whitespace contains a newline then we need to check what
                 # the next token is. If the next token is a token that causes a dedent,
                 # we need to reduce the indent level PRIOR to emitting this dedent
@@ -261,18 +357,19 @@ class Formatter:
                 #    {
                 #        '\n' causes indent emit here
                 #    }  <- this closing brace would be indented incorrectly
-                # Handle multiple newlines by only emitting one and ignoring the rest.
-                # This causes some loss of fidelity but keeps things simple for now.
-                # Block comments containing multiple newlines will be preserved while
-                # formatting.
+                # Beyond the first newline, how many further blank lines (if any)
+                # get reproduced is governed by config.empty_lines; see
+                # count_blank_lines(). Block comments containing multiple
+                # newlines will be preserved while formatting regardless.
                 if "\n" in token_text:
                     next_token = self.peek_token()
                     logger.debug(
                         "Whitespace contains newline. Next token is %s",
                         self.describe_token(next_token),
                     )
-                    if self.config.brace_style == "kr" and self.is_opening_brace(
-                        next_token
+                    if (
+                        self.config.brace_style == BraceStyle.KR
+                        and self.is_opening_brace(next_token)
                     ):
                         logger.debug(
                             "Applying K&R brace style before token %s",
@@ -280,18 +377,28 @@ class Formatter:
                         )
                         self.emit(TokenType.WHITESPACE, " ")
                     else:
-                        self.emit_line_break(next_token)
+                        self.emit_line_break(
+                            next_token, blank_lines=self.count_blank_lines(token_text)
+                        )
                 else:
                     next_token = self.next_non_whitespace_token()
                     logger.debug(
                         "Whitespace contains no newline. Next non-whitespace token is %s",
                         self.describe_token(next_token),
                     )
-                    if self.config.brace_style == "allman" and self.is_opening_brace(
-                        next_token
+                    if (
+                        self.config.brace_style == BraceStyle.ALLMAN
+                        and self.is_opening_brace(next_token)
                     ):
                         logger.debug(
                             "Applying Allman brace style before token %s",
+                            self.describe_token(next_token),
+                        )
+                        self.emit_line_break(next_token)
+                    elif pending_section_start or self.peek_section_marker():
+                        logger.debug(
+                            "Forcing line break after 'begin' or before section "
+                            "marker %s",
                             self.describe_token(next_token),
                         )
                         self.emit_line_break(next_token)
@@ -335,6 +442,7 @@ class Formatter:
                             self.consume_token()
                         self.consume_token()  # consume the second IDENT itself
                         self.indent_level += 1
+                        self.just_started_section = True
                         logger.debug(
                             "Section begin increased indent: %d -> %d",
                             previous_indent,
